@@ -36,10 +36,7 @@ class CameraImageInfo {
     }
     final bytes = allBytes.done().buffer.asUint8List();
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRotation =
         InputImageRotationValue.fromRawValue(cameraSensorOrientation) ??
