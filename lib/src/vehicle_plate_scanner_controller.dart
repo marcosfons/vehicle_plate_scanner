@@ -8,7 +8,7 @@ class VehiclePlateScannerController extends ChangeNotifier
     implements ValueListenable<VehiclePlateScannerController> {
   static List<CameraDescription>? _cameras;
 
-  final _plateRecognizer = PlateRecognizer();
+  final _plateRecognizer = VehiclePlateRecognizer();
 
   CameraController? _cameraController;
   ResolutionPreset _defaultResolutionPreset;
@@ -106,7 +106,6 @@ class VehiclePlateScannerController extends ChangeNotifier
       print(st.toString());
     }
 
-    await Future.delayed(const Duration(seconds: 2));
     _processing = false;
   }
 

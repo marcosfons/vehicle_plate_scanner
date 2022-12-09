@@ -12,9 +12,6 @@ dependencies:
     sdk: flutter
 
   camera: ^0.10.0+4
-  camera_platform_interface: ^2.3.1
-
-  flutter_isolate: ^2.0.4
 
   google_mlkit_commons: ^0.2.0
   google_mlkit_text_recognition: ^0.5.0

@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
@@ -8,24 +9,18 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 /// The major purpose of this class is provide a easy way to handle in and out
 /// data with export/from platformData and provide the sensor orientation too
 /// that is needed to the mlkit
+@immutable
 class CameraImageInfo {
   /// The image provided by the `camera` package
-  late final CameraImage image;
+  final CameraImage image;
 
   /// The sensor orientation of the camera
-  late final int cameraSensorOrientation;
+  final int cameraSensorOrientation;
 
-  CameraImageInfo({
+  const CameraImageInfo({
     required this.image,
     required this.cameraSensorOrientation,
   });
-
-  CameraImageInfo.fromPlatformData(Map<String, dynamic> platformData) {
-    cameraSensorOrientation = platformData['sensorOrientation'];
-
-    // TODO(marcosfons): Find a way to use fromPlatformInterface instead
-    image = CameraImage.fromPlatformData(platformData);
-  }
 
   /// Transform this image instance to an `InputImage` from the `google_ml_kit` package
   Future<InputImage> toInputImage() async {
@@ -67,28 +62,5 @@ class CameraImageInfo {
       bytes: bytes,
       inputImageData: inputImageData,
     );
-  }
-
-  Map<String, dynamic> exportToPlatformData() {
-    final data = <String, dynamic>{
-      'sensorOrientation': cameraSensorOrientation,
-      'format': image.format.raw,
-      'width': image.width,
-      'height': image.height,
-      'lensAperture': image.lensAperture,
-      'sensorExposureTime': image.sensorExposureTime,
-      'sensorSensitivity': image.sensorSensitivity,
-      'planes': image.planes
-          .map((Plane p) => <dynamic, dynamic>{
-                'bytes': p.bytes,
-                'bytesPerPixel': p.bytesPerPixel,
-                'bytesPerRow': p.bytesPerRow,
-                'height': p.height,
-                'width': p.width
-              })
-          .toList()
-    };
-
-    return data;
   }
 }
