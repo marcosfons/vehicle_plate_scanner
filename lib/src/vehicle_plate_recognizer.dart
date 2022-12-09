@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:ui';
 
-import 'package:flutter_isolate/flutter_isolate.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
 
 class PlateRecognizer {
-  late final FlutterIsolate _isolate;
+  late final Isolate _isolate;
   final _runningReceivePort = Completer<SendPort>();
 
   late final ReceivePort _receivePort;
@@ -21,12 +20,12 @@ class PlateRecognizer {
   Future<void> init() async {
     _receivePort = ReceivePort();
 
-    _isolate = await FlutterIsolate.spawn(
+    _dataSubscription = _receivePort.listen(_handleData);
+
+    _isolate = await Isolate.spawn(
       processPlatesIsolate,
       _receivePort.sendPort,
     );
-
-    _dataSubscription = _receivePort.listen(_handleData);
 
     await _runningReceivePort.future;
   }
@@ -40,7 +39,9 @@ class PlateRecognizer {
     }
 
     final port = await _runningReceivePort.future;
-    port.send(cameraImageInfo.exportToPlatformData());
+
+    // port.send(cameraImageInfo.exportToPlatformData());
+    port.send(cameraImageInfo);
 
     // TODO(marcosfons): Add better handling here.
     // In the future, multiple images could be sended at the same time
@@ -52,7 +53,14 @@ class PlateRecognizer {
 
   void _handleData(dynamic data) {
     if (data is SendPort) {
-      _runningReceivePort.complete(data);
+      final rootIsolateToken = RootIsolateToken.instance!;
+      data.send(rootIsolateToken);
+
+      // TODO(marcosfons): Handle this better to remove this delay. Lazy programmes use delays
+      Future.delayed(
+        const Duration(milliseconds: 100),
+        () => _runningReceivePort.complete(data),
+      );
     } else if (data is List) {
       _controller.add(data
           .map((plate) => BrazilianVehiclePlate.fromPlatformData(plate))
@@ -68,50 +76,63 @@ class PlateRecognizer {
     _controller.close();
   }
 
+  static ReceivePort? _port;
+
   @pragma('vm:entry-point')
   static void processPlatesIsolate(SendPort sendPort) {
-    ReceivePort mainToIsolateStream = ReceivePort();
-    sendPort.send(mainToIsolateStream.sendPort);
+    _port = ReceivePort();
 
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
-    late StreamSubscription inDataSubscription;
+    _port!.listen(
+      (dynamic data) async {
+        if (data is RootIsolateToken) {
+          BackgroundIsolateBinaryMessenger.ensureInitialized(data);
+        }
+        if (data is CameraImageInfo) {
+          final inputImage = await data.toInputImage();
 
-    inDataSubscription = mainToIsolateStream.listen((data) async {
-      if (data is Map<String, dynamic>) {
-        final cameraImageData = CameraImageInfo.fromPlatformData(data);
+          final plates = await _processPlatesFromInputImage(
+            inputImage,
+            textRecognizer,
+          );
 
-        final inputImage = await cameraImageData.toInputImage();
-        final plates = await _processPlatesFromInputImage(
-          inputImage,
-          textRecognizer,
-        );
+          sendPort.send(
+            plates.map((plate) => plate.toPlatformData()).toList(),
+          );
+        } else if (data is Map<String, dynamic>) {
+          final cameraImageData = CameraImageInfo.fromPlatformData(data);
 
-        sendPort.send(
-          plates.map((plate) => plate.toPlatformData()).toList(),
-        );
-      }
-      //  else if (data is String && data == 'exit') {
-      //   acceptingData = false;
-      //   await inDataSubscription.cancel();
+          final inputImage = await cameraImageData.toInputImage();
+          final plates = await _processPlatesFromInputImage(
+            inputImage,
+            textRecognizer,
+          );
+
+          sendPort.send(
+            plates.map((plate) => plate.toPlatformData()).toList(),
+          );
+        }
+      },
+      // print('FINISHING ISOLATE');
+
+      // try {
+      //   await textRecognizer.close();
+      //   mainToIsolateStream.close();
+      // } catch (e, st) {
+      //   print('AN ERROR HAS OCCURRED WHILE FINISHING ISOLATE');
+      //   print(e.toString());
+      //   print(st.toString());
       // }
-    }, onDone: () async {
-      print('FINISHING ISOLATE');
+    );
 
-      try {
-        await textRecognizer.close();
-        mainToIsolateStream.close();
-      } catch (e, st) {
-        print('AN ERROR HAS OCCURRED WHILE FINISHING ISOLATE');
-        print(e.toString());
-        print(st.toString());
-      }
-    });
+    sendPort.send(_port!.sendPort);
   }
 
   static final plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
 
+  @pragma('vm:entry-point')
   static Future<List<BrazilianVehiclePlate>> _processPlatesFromInputImage(
     InputImage inputImage,
     TextRecognizer textRecognizer,

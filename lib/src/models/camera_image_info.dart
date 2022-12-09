@@ -24,7 +24,7 @@ class CameraImageInfo {
     cameraSensorOrientation = platformData['sensorOrientation'];
 
     // TODO(marcosfons): Find a way to use fromPlatformInterface instead
-    image = CameraImage.fromPlatformData(platformData['image']);
+    image = CameraImage.fromPlatformData(platformData);
   }
 
   /// Transform this image instance to an `InputImage` from the `google_ml_kit` package
@@ -70,25 +70,25 @@ class CameraImageInfo {
   }
 
   Map<String, dynamic> exportToPlatformData() {
-    return <String, dynamic>{
+    final data = <String, dynamic>{
       'sensorOrientation': cameraSensorOrientation,
-      'image': <String, dynamic>{
-        'format': image.format.raw,
-        'width': image.width,
-        'height': image.height,
-        'lensAperture': image.lensAperture,
-        'sensorExposureTime': image.sensorExposureTime,
-        'sensorSensitivity': image.sensorSensitivity,
-        'planes': image.planes
-            .map((Plane p) => <dynamic, dynamic>{
-                  'bytes': p.bytes,
-                  'bytesPerPixel': p.bytesPerPixel,
-                  'bytesPerRow': p.bytesPerRow,
-                  'height': p.height,
-                  'width': p.width
-                })
-            .toList(growable: false)
-      },
+      'format': image.format.raw,
+      'width': image.width,
+      'height': image.height,
+      'lensAperture': image.lensAperture,
+      'sensorExposureTime': image.sensorExposureTime,
+      'sensorSensitivity': image.sensorSensitivity,
+      'planes': image.planes
+          .map((Plane p) => <dynamic, dynamic>{
+                'bytes': p.bytes,
+                'bytesPerPixel': p.bytesPerPixel,
+                'bytesPerRow': p.bytesPerRow,
+                'height': p.height,
+                'width': p.width
+              })
+          .toList()
     };
+
+    return data;
   }
 }

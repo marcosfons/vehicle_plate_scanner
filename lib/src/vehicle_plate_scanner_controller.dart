@@ -106,7 +106,7 @@ class VehiclePlateScannerController extends ChangeNotifier
       print(st.toString());
     }
 
-    // await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(seconds: 2));
     _processing = false;
   }
 
