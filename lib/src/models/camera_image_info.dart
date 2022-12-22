@@ -26,13 +26,14 @@ class CameraImageInfo {
   Future<InputImage> toInputImage() async {
     final allBytes = WriteBuffer();
 
-    for (var plane in image.planes) {
+    for (final plane in image.planes) {
       allBytes.putUint8List(plane.bytes);
     }
     final bytes = allBytes.done().buffer.asUint8List();
 
     final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
+    // TODO(marcosfons): Need to handle correctly the device rotation
     final imageRotation =
         InputImageRotationValue.fromRawValue(cameraSensorOrientation) ??
             InputImageRotation.rotation0deg;

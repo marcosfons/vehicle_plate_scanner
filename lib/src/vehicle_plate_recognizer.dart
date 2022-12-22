@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -7,12 +8,16 @@ import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
 
 class VehiclePlateRecognizer {
+  final Rect firstPlateRect;
+
   late final Isolate _isolate;
   late final ReceivePort _receivePort;
 
   final _runningReceivePort = Completer<SendPort>();
   final _controller = StreamController<List<BrazilianVehiclePlate>>();
   late final _streamIterator = StreamIterator(_controller.stream);
+
+  VehiclePlateRecognizer(this.firstPlateRect);
 
   Future<void> init() async {
     _receivePort = ReceivePort();
@@ -53,8 +58,14 @@ class VehiclePlateRecognizer {
     } else if (data is SendPort) {
       final rootIsolateToken = RootIsolateToken.instance!;
       data.send(rootIsolateToken);
+      data.send(firstPlateRect);
       _runningReceivePort.complete(data);
     }
+  }
+
+  void changePlateRect(Rect newRect) async {
+    final port = await _runningReceivePort.future;
+    port.send(newRect);
   }
 
   Future<void> dispose() async {
@@ -70,6 +81,8 @@ class VehiclePlateRecognizer {
 /// allows us to use plugins from background isolates.
 class _VehiclePlateRecognizerBackground {
   _VehiclePlateRecognizerBackground(this._sendPort);
+
+  Rect? plateRect;
 
   static final _plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
@@ -108,6 +121,8 @@ class _VehiclePlateRecognizerBackground {
       );
 
       _sendPort.send(plates);
+    } else if (data is Rect) {
+      plateRect = data;
     }
   }
 
@@ -123,8 +138,6 @@ class _VehiclePlateRecognizerBackground {
   ) async {
     try {
       final recognizedText = await textRecognizer.processImage(inputImage);
-
-      final Set<String> plates = {};
 
       final List<BrazilianVehiclePlate> brazilianPlates = [];
 
@@ -142,6 +155,28 @@ class _VehiclePlateRecognizerBackground {
           //     .allMatches(text)
           //     .map((match) => match.group(0).toString()));
 
+          double error = 0;
+
+          if (plateRect != null) {
+            // Sum the distance between the two LeftTop points to the error
+            error += sqrt(pow(plateRect!.left - boundingBox.left, 2) +
+                pow(plateRect!.top - boundingBox.top, 2));
+
+            // Sum the distance between the two RightBottom points to the error
+            error += sqrt(pow(plateRect!.right - boundingBox.right, 2) +
+                pow(plateRect!.bottom - boundingBox.bottom, 2));
+          }
+
+          print('PR: $plateRect     BB: $boundingBox');
+
+          bool insideRect = plateRect != null &&
+              plateRect!.contains(Offset(boundingBox.left, boundingBox.top)) &&
+              plateRect!
+                  .contains(Offset(boundingBox.left, boundingBox.bottom)) &&
+              plateRect!.contains(Offset(boundingBox.right, boundingBox.top)) &&
+              plateRect!
+                  .contains(Offset(boundingBox.right, boundingBox.bottom));
+
           brazilianPlates.addAll(_plateRegex
               .allMatches(text)
               .map((match) => match.group(0).toString())
@@ -150,10 +185,15 @@ class _VehiclePlateRecognizerBackground {
                   plate,
                   boundingBox,
                   block.cornerPoints,
+                  error,
+                  insideRect,
                 ),
               ));
         }
       }
+
+      brazilianPlates
+          .sort((a, b) => a.errorToPlateRect.compareTo(b.errorToPlateRect));
 
       return brazilianPlates;
     } catch (e, st) {

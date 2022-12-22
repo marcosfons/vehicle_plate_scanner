@@ -9,9 +9,14 @@ class BrazilianVehiclePlate {
   final Rect boundingBox;
   final List<Point<int>> cornerPoints;
 
+  final double errorToPlateRect;
+  final bool insideRect;
+
   const BrazilianVehiclePlate(
     this.plate,
     this.boundingBox,
     this.cornerPoints,
+    this.errorToPlateRect,
+    this.insideRect,
   );
 }

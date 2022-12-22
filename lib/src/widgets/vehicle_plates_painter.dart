@@ -21,20 +21,6 @@ class VehiclePlatesPainter extends CustomPainter {
         plate.boundingBox.bottom * size.width,
       );
       canvas.drawRect(rect, paint);
-
-      // if (plate.cornerPoints.isNotEmpty) {
-      //   final firstPoint = plate.cornerPoints.first;
-      //   final path = Path();
-
-      //   path.moveTo(firstPoint.x.toDouble(), firstPoint.y.toDouble());
-
-      //   for (final cornerPoint in plate.cornerPoints) {
-      //     path.lineTo(cornerPoint.x.toDouble(), cornerPoint.y.toDouble());
-      //   }
-      //   path.lineTo(firstPoint.x.toDouble(), firstPoint.y.toDouble());
-
-      //   canvas.drawPath(path, pathPaint);
-      // }
     }
   }
 

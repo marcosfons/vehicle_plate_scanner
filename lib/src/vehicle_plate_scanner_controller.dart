@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
@@ -8,7 +10,9 @@ class VehiclePlateScannerController extends ChangeNotifier
     implements ValueListenable<VehiclePlateScannerController> {
   static List<CameraDescription>? _cameras;
 
-  final _plateRecognizer = VehiclePlateRecognizer();
+  late final _plateRecognizer = VehiclePlateRecognizer(plateRect);
+
+  Rect plateRect;
 
   CameraController? _cameraController;
   ResolutionPreset _defaultResolutionPreset;
@@ -18,7 +22,11 @@ class VehiclePlateScannerController extends ChangeNotifier
 
   List<BrazilianVehiclePlate> _currentPlates = [];
 
+  final Function(List<BrazilianVehiclePlate>) onVehiclePlates;
+
   VehiclePlateScannerController({
+    required this.onVehiclePlates,
+    required this.plateRect,
     ResolutionPreset resolutionPreset = ResolutionPreset.high,
   }) : _defaultResolutionPreset = resolutionPreset;
 
@@ -28,6 +36,11 @@ class VehiclePlateScannerController extends ChangeNotifier
   CameraDescription? get currentCamera => _currentCamera;
 
   bool get initialized => _initialized;
+
+  void changePlateRect(Rect newRect) {
+    plateRect = newRect;
+    _plateRecognizer.changePlateRect(newRect);
+  }
 
   Future<void> init() async {
     if (_cameras != null) {
@@ -70,11 +83,8 @@ class VehiclePlateScannerController extends ChangeNotifier
       await controller?.dispose();
     }
 
-    _cameraController = CameraController(
-      camera,
-      _defaultResolutionPreset,
-      enableAudio: false,
-    );
+    _cameraController = CameraController(camera, _defaultResolutionPreset,
+        enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
 
     await _cameraController!.initialize();
     await _cameraController!.startImageStream(_onImage);
@@ -100,7 +110,7 @@ class VehiclePlateScannerController extends ChangeNotifier
       _currentPlates = await _plateRecognizer.processImage(cameraImageInfo);
       notifyListeners();
 
-      print(_currentPlates);
+      onVehiclePlates(_currentPlates);
     } catch (e, st) {
       print(e.toString());
       print(st.toString());
