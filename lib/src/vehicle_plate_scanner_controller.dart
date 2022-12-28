@@ -43,10 +43,6 @@ class VehiclePlateScannerController extends ChangeNotifier
   }
 
   Future<void> init() async {
-    if (_cameras != null) {
-      return;
-    }
-
     // TODO(marcosfons): Error handling
     await _plateRecognizer.init();
 

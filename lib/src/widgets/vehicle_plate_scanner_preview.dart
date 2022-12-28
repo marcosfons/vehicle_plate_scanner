@@ -49,28 +49,28 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
     }
   }
 
-  @override
-  void didUpdateWidget(covariant VehiclePlateScannerPreview oldWidget) {
-    super.didUpdateWidget(oldWidget);
+  // @override
+  // void didUpdateWidget(covariant VehiclePlateScannerPreview oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
 
-    if (widget.plateRect != oldWidget.plateRect) {
-      _controller.changePlateRect(widget.plateRect);
-      setState(() {});
-    }
-  }
+  //   if (widget.plateRect != oldWidget.plateRect) {
+  //     _controller.changePlateRect(widget.plateRect);
+  //     setState(() {});
+  //   }
+  // }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_controller.initialized) {
-      return;
-    }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   if (!_controller.initialized) {
+  //     return;
+  //   }
 
-    if (state == AppLifecycleState.inactive) {
-      _controller.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _init();
-    }
-  }
+  //   if (state == AppLifecycleState.inactive) {
+  //     _controller.dispose();
+  //   } else if (state == AppLifecycleState.resumed) {
+  //     _init();
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -86,6 +86,9 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
         if (!controller.initialized || controller.cameraController == null) {
           return const _LoadingScreenWidget();
         }
+        return CameraPreview(
+          controller.cameraController!,
+        );
 
         return Stack(
           alignment: Alignment.bottomCenter,
@@ -98,81 +101,81 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
                 ),
               ),
             ),
-            AspectRatio(
-              aspectRatio: controller.cameraController!.value.aspectRatio,
-              child: IgnorePointer(
-                child: LayoutBuilder(builder: (context, constraints) {
-                  // final biggest = constraints.biggest;
-                  // final newRect = Rect.fromLTRB(
-                  //   widget.plateRect.left / biggest.width,
-                  //   widget.plateRect.top / biggest.height,
-                  //   widget.plateRect.right / biggest.width,
-                  //   widget.plateRect.bottom / biggest.height,
-                  // );
+            // AspectRatio(
+            //   aspectRatio: controller.cameraController!.value.aspectRatio,
+            //   child: IgnorePointer(
+            //     child: LayoutBuilder(builder: (context, constraints) {
+            //       // final biggest = constraints.biggest;
+            //       // final newRect = Rect.fromLTRB(
+            //       //   widget.plateRect.left / biggest.width,
+            //       //   widget.plateRect.top / biggest.height,
+            //       //   widget.plateRect.right / biggest.width,
+            //       //   widget.plateRect.bottom / biggest.height,
+            //       // );
 
-                  late Rect newRect;
-                  if (widget.onSizePlateRect != null) {
-                    newRect = widget.onSizePlateRect!(constraints.biggest);
+            //       late Rect newRect;
+            //       if (widget.onSizePlateRect != null) {
+            //         newRect = widget.onSizePlateRect!(constraints.biggest);
 
-                    if (newRect != _controller.plateRect) {
-                      _controller.changePlateRect(newRect);
-                    }
-                  } else {
-                    newRect = _controller.plateRect;
-                  }
+            //         if (newRect != _controller.plateRect) {
+            //           _controller.changePlateRect(newRect);
+            //         }
+            //       } else {
+            //         newRect = _controller.plateRect;
+            //       }
 
-                  return ClipPath(
-                    clipper: PlateRectCustomClipper(
-                      plateRect: newRect,
-                    ),
-                    child: Container(
-                      color: Colors.black.withOpacity(0.3),
-                    ),
-                  );
-                }),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: ResolutionPreset.values
-                        .map(
-                          (res) => Expanded(
-                            child: TextButton(
-                              onPressed: () =>
-                                  _controller.changeResolutionPreset(res),
-                              child: Text(
-                                res.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: controller.cameras!
-                        .map(
-                          (camera) => IconButton(
-                            color: Colors.white,
-                            icon: const Icon(Icons.camera),
-                            onPressed: () => _controller.changeCamera(camera),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-              ),
-            ),
+            //       return ClipPath(
+            //         clipper: PlateRectCustomClipper(
+            //           plateRect: newRect,
+            //         ),
+            //         child: Container(
+            //           color: Colors.black.withOpacity(0.3),
+            //         ),
+            //       );
+            //     }),
+            //   ),
+            // ),
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(horizontal: 12),
+            //   child: Column(
+            //     mainAxisSize: MainAxisSize.min,
+            //     children: [
+            //       Row(
+            //         children: ResolutionPreset.values
+            //             .map(
+            //               (res) => Expanded(
+            //                 child: TextButton(
+            //                   onPressed: () =>
+            //                       _controller.changeResolutionPreset(res),
+            //                   child: Text(
+            //                     res.name,
+            //                     style: const TextStyle(
+            //                       color: Colors.white,
+            //                       fontSize: 14,
+            //                       fontWeight: FontWeight.bold,
+            //                     ),
+            //                   ),
+            //                 ),
+            //               ),
+            //             )
+            //             .toList(),
+            //       ),
+            //       const SizedBox(height: 12),
+            //       Row(
+            //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            //         children: controller.cameras!
+            //             .map(
+            //               (camera) => IconButton(
+            //                 color: Colors.white,
+            //                 icon: const Icon(Icons.camera),
+            //                 onPressed: () => _controller.changeCamera(camera),
+            //               ),
+            //             )
+            //             .toList(),
+            //       ),
+            //     ],
+            //   ),
+            // ),
           ],
         );
       },
@@ -187,24 +190,18 @@ class _LoadingScreenWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.black,
+      width: double.infinity,
+      height: double.infinity,
+      alignment: Alignment.center,
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: const [
+          SizedBox(height: 10),
           CircularProgressIndicator(
             strokeWidth: 1.3,
             color: Colors.white,
           ),
-          SizedBox(
-            height: 18,
-            width: double.infinity,
-          ),
-          Text(
-            'Carregando',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          )
+          SizedBox(height: 20)
         ],
       ),
     );

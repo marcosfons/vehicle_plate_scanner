@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -58,7 +57,7 @@ class VehiclePlateRecognizer {
     } else if (data is SendPort) {
       final rootIsolateToken = RootIsolateToken.instance!;
       data.send(rootIsolateToken);
-      data.send(firstPlateRect);
+      // data.send(firstPlateRect);
       _runningReceivePort.complete(data);
     }
   }
@@ -104,8 +103,6 @@ class _VehiclePlateRecognizerBackground {
       backgroundInstance._handleCommand,
       onDone: backgroundInstance.dispose,
     );
-
-    sendPort.send(receivePort.sendPort);
   }
 
   /// Handle the [data] received from the [ReceivePort].
@@ -155,27 +152,27 @@ class _VehiclePlateRecognizerBackground {
           //     .allMatches(text)
           //     .map((match) => match.group(0).toString()));
 
-          double error = 0;
+          // double error = 0;
 
-          if (plateRect != null) {
-            // Sum the distance between the two LeftTop points to the error
-            error += sqrt(pow(plateRect!.left - boundingBox.left, 2) +
-                pow(plateRect!.top - boundingBox.top, 2));
+          // if (plateRect != null) {
+          //   // Sum the distance between the two LeftTop points to the error
+          //   error += sqrt(pow(plateRect!.left - boundingBox.left, 2) +
+          //       pow(plateRect!.top - boundingBox.top, 2));
 
-            // Sum the distance between the two RightBottom points to the error
-            error += sqrt(pow(plateRect!.right - boundingBox.right, 2) +
-                pow(plateRect!.bottom - boundingBox.bottom, 2));
-          }
+          //   // Sum the distance between the two RightBottom points to the error
+          //   error += sqrt(pow(plateRect!.right - boundingBox.right, 2) +
+          //       pow(plateRect!.bottom - boundingBox.bottom, 2));
+          // }
 
-          print('PR: $plateRect     BB: $boundingBox');
+          // print('PR: $plateRect     BB: $boundingBox');
 
-          bool insideRect = plateRect != null &&
-              plateRect!.contains(Offset(boundingBox.left, boundingBox.top)) &&
-              plateRect!
-                  .contains(Offset(boundingBox.left, boundingBox.bottom)) &&
-              plateRect!.contains(Offset(boundingBox.right, boundingBox.top)) &&
-              plateRect!
-                  .contains(Offset(boundingBox.right, boundingBox.bottom));
+          // bool insideRect = plateRect != null &&
+          //     plateRect!.contains(Offset(boundingBox.left, boundingBox.top)) &&
+          //     plateRect!
+          //         .contains(Offset(boundingBox.left, boundingBox.bottom)) &&
+          //     plateRect!.contains(Offset(boundingBox.right, boundingBox.top)) &&
+          //     plateRect!
+          //         .contains(Offset(boundingBox.right, boundingBox.bottom));
 
           brazilianPlates.addAll(_plateRegex
               .allMatches(text)
@@ -185,8 +182,8 @@ class _VehiclePlateRecognizerBackground {
                   plate,
                   boundingBox,
                   block.cornerPoints,
-                  error,
-                  insideRect,
+                  0,
+                  true,
                 ),
               ));
         }
