@@ -86,6 +86,8 @@ class _VehiclePlateRecognizerBackground {
   static final _plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
 
+  static final _newPlateRegex = RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})');
+
   final SendPort _sendPort;
 
   late final textRecognizer =
@@ -186,6 +188,48 @@ class _VehiclePlateRecognizerBackground {
                   true,
                 ),
               ));
+        } else if (text.length == 7 && text.contains('O')) {
+          final combinations = <String>[];
+          combinations.add(text);
+
+          for (int i = 0; i < text.length; i++) {
+            final combinationsLength = combinations.length;
+
+            for (int j = 0; j < combinationsLength; j++) {
+              if (combinations[j][i] == 'O') {
+                final splitted = combinations[j].split('');
+                splitted[i] = '0';
+                combinations.add(splitted.join());
+              }
+            }
+          }
+
+          final boundingBox = Rect.fromLTRB(
+            block.boundingBox.left / inputImage.inputImageData!.size.width,
+            block.boundingBox.top / inputImage.inputImageData!.size.height,
+            block.boundingBox.right / inputImage.inputImageData!.size.width,
+            block.boundingBox.bottom / inputImage.inputImageData!.size.height,
+          );
+          print('\nRunning inside combinations');
+          print(combinations);
+
+          for (final combination in combinations
+              .where((combination) => _newPlateRegex.hasMatch(combination))) {
+            print('Valid combination: $combination');
+
+            brazilianPlates.addAll(_plateRegex
+                .allMatches(combination)
+                .map((match) => match.group(0).toString())
+                .map(
+                  (plate) => BrazilianVehiclePlate(
+                    plate,
+                    boundingBox,
+                    block.cornerPoints,
+                    0,
+                    true,
+                  ),
+                ));
+          }
         }
       }
 
