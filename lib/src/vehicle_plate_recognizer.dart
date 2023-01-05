@@ -141,7 +141,11 @@ class _VehiclePlateRecognizerBackground {
       final List<BrazilianVehiclePlate> brazilianPlates = [];
 
       for (TextBlock block in recognizedText.blocks) {
-        final String text = block.text;
+        String text = block.text;
+
+        if (text.length == 7 && text.contains('u')) {
+          text = text.toUpperCase();
+        }
 
         if (_plateRegex.hasMatch(text)) {
           final boundingBox = Rect.fromLTRB(
@@ -210,13 +214,9 @@ class _VehiclePlateRecognizerBackground {
             block.boundingBox.right / inputImage.inputImageData!.size.width,
             block.boundingBox.bottom / inputImage.inputImageData!.size.height,
           );
-          print('\nRunning inside combinations');
-          print(combinations);
 
           for (final combination in combinations
               .where((combination) => _newPlateRegex.hasMatch(combination))) {
-            print('Valid combination: $combination');
-
             brazilianPlates.addAll(_plateRegex
                 .allMatches(combination)
                 .map((match) => match.group(0).toString())
