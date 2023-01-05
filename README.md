@@ -13,6 +13,10 @@ and the Flutter guide for
 
 A scanner for brazilian vehicle plates.
 
+## Caveats:
+- Not production ready yet
+- Only using OCR for now. In the future would be interesting to create a model to detect valid vehicle plates
+
 ## Features
 
 TODO: List what your package can do. Maybe include images, gifs, or videos.
