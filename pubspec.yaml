@@ -1,6 +1,6 @@
 name: vehicle_plate_scanner
 description: A package to scan images for brazilian vehicle plates.
-version: 0.0.1+1
+version: 0.0.1+2
 homepage: https://github.com/marcosfons/vehicle_plate_scanner
 
 environment:

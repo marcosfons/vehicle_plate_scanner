@@ -143,7 +143,7 @@ class _VehiclePlateRecognizerBackground {
       for (TextBlock block in recognizedText.blocks) {
         String text = block.text;
 
-        if (text.length == 7 && text.contains('u')) {
+        if ((text.length == 7 || text.length == 8) && text.contains('u')) {
           text = text.toUpperCase();
         }
 
@@ -216,7 +216,50 @@ class _VehiclePlateRecognizerBackground {
           );
 
           for (final combination in combinations
-              .where((combination) => _newPlateRegex.hasMatch(combination))) {
+              .where((combination) => _plateRegex.hasMatch(combination))) {
+            brazilianPlates.addAll(_plateRegex
+                .allMatches(combination)
+                .map((match) => match.group(0).toString())
+                .map(
+                  (plate) => BrazilianVehiclePlate(
+                    plate,
+                    boundingBox,
+                    block.cornerPoints,
+                    0,
+                    true,
+                  ),
+                ));
+          }
+        }
+        if (text.length == 8 && (text.contains('0') || text.contains('O'))) {
+          final combinations = <String>[];
+          combinations.add(text);
+
+          for (int i = 0; i < text.length; i++) {
+            final combinationsLength = combinations.length;
+
+            for (int j = 0; j < combinationsLength; j++) {
+              if (combinations[j][i] == '0') {
+                final splitted = combinations[j].split('');
+                splitted[i] = 'O';
+                combinations.add(splitted.join());
+              } else if (combinations[j][i] == 'O') {
+                final splitted = combinations[j].split('');
+                splitted[i] = 'Q';
+                combinations.add(splitted.join());
+              }
+            }
+          }
+
+          final boundingBox = Rect.fromLTRB(
+            block.boundingBox.left / inputImage.inputImageData!.size.width,
+            block.boundingBox.top / inputImage.inputImageData!.size.height,
+            block.boundingBox.right / inputImage.inputImageData!.size.width,
+            block.boundingBox.bottom / inputImage.inputImageData!.size.height,
+          );
+
+          for (final combination in combinations
+              .where((combination) => _plateRegex.hasMatch(combination))) {
             brazilianPlates.addAll(_plateRegex
                 .allMatches(combination)
                 .map((match) => match.group(0).toString())
