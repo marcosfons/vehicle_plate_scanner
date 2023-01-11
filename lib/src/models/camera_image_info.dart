@@ -55,7 +55,8 @@ class CameraImageInfo {
     final inputImageData = InputImageData(
       size: imageSize,
       imageRotation: imageRotation,
-      inputImageFormat: InputImageFormat.yuv420,
+      // inputImageFormat: InputImageFormat.yuv420,
+      inputImageFormat: inputImageFormat,
       planeData: planeData,
     );
 

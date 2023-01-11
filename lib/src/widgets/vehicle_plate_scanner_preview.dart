@@ -86,8 +86,51 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
         if (!controller.initialized || controller.cameraController == null) {
           return const _LoadingScreenWidget();
         }
-        return CameraPreview(
-          controller.cameraController!,
+        if (controller.memoryImage == null) {
+          return CameraPreview(
+            controller.cameraController!,
+          );
+        }
+        return Column(
+          children: [
+            Expanded(
+              child: CameraPreview(
+                controller.cameraController!,
+              ),
+            ),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: Image.memory(controller.memoryImage!)),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: 12,
+                        left: 6,
+                        right: 6,
+                      ),
+                      child: ListView.builder(
+                        itemCount: controller.lastPlates.length,
+                        itemBuilder: (context, index) {
+                          final plate = controller.lastPlates[index];
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Text(
+                              '${plate.plate}  Changes: ${plate.combinationChanges}',
+                              style: TextStyle(
+                                fontSize: plate.plate == 'QOO-4429' ? 23 : 17,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
 
         return Stack(

@@ -48,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vehicle plate scanner'),
+        actions: const [],
       ),
       body: Stack(
         children: [
@@ -55,7 +56,8 @@ class _MyHomePageState extends State<MyHomePage> {
             onVehiclePlates: (plates) {
               if (plates.isNotEmpty) {
                 print(plates
-                    .map((plate) => '${plate.plate}: ${plate.errorToPlateRect}')
+                    .map((plate) =>
+                        '${plate.plate}: ${plate.combinationChanges}')
                     .join(',   '));
                 print('');
               }

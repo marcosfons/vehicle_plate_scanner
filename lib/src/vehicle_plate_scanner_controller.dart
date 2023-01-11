@@ -20,6 +20,9 @@ class VehiclePlateScannerController extends ChangeNotifier
   bool _initialized = false;
   bool _processing = false;
 
+  Uint8List? memoryImage;
+  List<BrazilianVehiclePlate> lastPlates = [];
+
   List<BrazilianVehiclePlate> _currentPlates = [];
 
   final Function(List<BrazilianVehiclePlate>) onVehiclePlates;
@@ -101,10 +104,17 @@ class VehiclePlateScannerController extends ChangeNotifier
       final cameraImageInfo = CameraImageInfo(
         image: image,
         cameraSensorOrientation: _currentCamera!.sensorOrientation,
+        // cameraSensorOrientation: _cameraController.value.recordingOrientation,
       );
 
       _currentPlates = await _plateRecognizer.processImage(cameraImageInfo);
       notifyListeners();
+
+      if (_currentPlates.isNotEmpty) {
+        memoryImage = convertImageWithVehiclePlate(image, _currentPlates.first);
+        lastPlates = List.from(_currentPlates);
+        notifyListeners();
+      }
 
       onVehiclePlates(_currentPlates);
     } catch (e, st) {
