@@ -177,6 +177,9 @@ class _VehiclePlateRecognizerBackground {
         'D': ['0', 'O', 'Q'],
         'O': ['0', 'D', 'Q'],
         'Q': ['0', 'D', 'O'],
+        '1': ['L', 'I'],
+        'L': ['1', 'I'],
+        'I': ['L', '1'],
       };
 
       for (TextBlock block in recognizedText.blocks) {
@@ -255,7 +258,6 @@ class _VehiclePlateRecognizerBackground {
 
           for (final letter in mapping) {
             splitted[i] = letter;
-
             combinations.add(
               _Combination(
                 splitted.join(),

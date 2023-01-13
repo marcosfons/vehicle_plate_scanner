@@ -37,34 +37,34 @@ packages:
     dependency: transitive
     description:
       name: camera_android
-      sha256: "8262559223a4e186f8396e98b1dea23774d106a9d8635a9bddcb8ae8e0679b9f"
+      sha256: c11ef58761fef48aecc81e83053b9c01a82fb4364c63eb748fa0043f48fdae9e
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.0+5"
+    version: "0.10.2+1"
   camera_avfoundation:
     dependency: transitive
     description:
       name: camera_avfoundation
-      sha256: "43021a22067b8be6d1fc3d9559d503766a7e6ca968c189bfbf79d4ede0bc5f7c"
+      sha256: b85c6affa825dd5246e5d3c2a80f2ab97e304ecb2a827ff5b5c4a9d6007d7cbe
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.8+6"
+    version: "0.9.10+1"
   camera_platform_interface:
     dependency: transitive
     description:
       name: camera_platform_interface
-      sha256: "506aa8173612816a36f456c0a219b2f449bf18912b43b1edb4ba49790895beea"
+      sha256: "27869cac5f9579957592959a5a38bdedc41a894d23899119906d07b40ae5b3f4"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.1"
+    version: "2.3.3"
   camera_web:
     dependency: transitive
     description:
       name: camera_web
-      sha256: "0c4bdd73e28affc36e7693d948bd90415e7b02bef3feea761dd18405e9485e2a"
+      sha256: "6db5052de8c5074edc8cf75bc9a63a56dd0ae18646152b9d2273a9a4f6301b17"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.0+1"
+    version: "0.3.1"
   characters:
     dependency: transitive
     description:
@@ -260,10 +260,10 @@ packages:
     dependency: transitive
     description:
       name: quiver
-      sha256: "93982981971e812c94d4a6fa3a57b89f9ec12b38b6380cd3c1370c3b01e4580e"
+      sha256: b1c1ac5ce6688d77f65f3375a9abb9319b3cb32486bdc7a1e0fdf004d7ba4e47
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.0"
+    version: "3.2.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -347,7 +347,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.0.1+4"
+    version: "0.0.1+5"
   xml:
     dependency: transitive
     description:
