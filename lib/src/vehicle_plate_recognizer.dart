@@ -121,28 +121,28 @@ class _VehiclePlateRecognizerBackground {
         textRecognizer,
       );
 
-      if (plates.isNotEmpty) {
-        print('Converting image to PNG');
-        final stopwatch = Stopwatch();
-        try {
-          stopwatch.start();
-          final myImage =
-              convertImageWithVehiclePlate(data.image, plates.first);
-          print(
-              'ELAPSED: ${stopwatch.elapsedMilliseconds}  -   ${stopwatch.elapsed} ');
+      // if (plates.isNotEmpty) {
+      //   print('Converting image to PNG');
+      //   final stopwatch = Stopwatch();
+      //   try {
+      //     stopwatch.start();
+      //     final myImage =
+      //         convertImageWithVehiclePlate(data.image, plates.first);
+      //     print(
+      //         'ELAPSED: ${stopwatch.elapsedMilliseconds}  -   ${stopwatch.elapsed} ');
 
-          print(myImage != null);
-          print(myImage?.length);
-          print(myImage?.lengthInBytes);
-        } catch (e, st) {
-          print(
-              'ELAPSED: ${stopwatch.elapsedMilliseconds}  -   ${stopwatch.elapsed} ');
-          print('Deu algum erro ao sla o q');
+      //     print(myImage != null);
+      //     print(myImage?.length);
+      //     print(myImage?.lengthInBytes);
+      //   } catch (e, st) {
+      //     print(
+      //         'ELAPSED: ${stopwatch.elapsedMilliseconds}  -   ${stopwatch.elapsed} ');
+      //     print('Deu algum erro ao sla o q');
 
-          print(e.toString());
-          print(st.toString());
-        }
-      }
+      //     print(e.toString());
+      //     print(st.toString());
+      //   }
+      // }
 
       _sendPort.send(plates);
     } else if (data is Rect) {
