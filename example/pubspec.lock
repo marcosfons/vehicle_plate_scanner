@@ -29,42 +29,42 @@ packages:
     dependency: transitive
     description:
       name: camera
-      sha256: b7316e7861cf7a7196ef670f391a0e8d1f36eebd4e199d3077e0a23e11db2a44
+      sha256: "045e7739f9362f3c01d5c7187ac7e2ba9e2bc9f2ae6470ecdcc5e34d060ed81c"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.1"
+    version: "0.10.2+1"
   camera_android:
     dependency: transitive
     description:
       name: camera_android
-      sha256: c11ef58761fef48aecc81e83053b9c01a82fb4364c63eb748fa0043f48fdae9e
+      sha256: "417e9eddda8025d7342f82ee53b214f149793e95c8490c3440a46144409f7966"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.2+1"
+    version: "0.10.2+3"
   camera_avfoundation:
     dependency: transitive
     description:
       name: camera_avfoundation
-      sha256: b85c6affa825dd5246e5d3c2a80f2ab97e304ecb2a827ff5b5c4a9d6007d7cbe
+      sha256: eeda6a7947b1f7c47395c4459342d1e6866014186449e141a251f0549aba0c8b
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.10+1"
+    version: "0.9.10+2"
   camera_platform_interface:
     dependency: transitive
     description:
       name: camera_platform_interface
-      sha256: "27869cac5f9579957592959a5a38bdedc41a894d23899119906d07b40ae5b3f4"
+      sha256: "0eedd642d905ca24f1c483fe9ea0d0e7287b86a402845c28d24df28cc7b0ee6e"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.3"
+    version: "2.3.4"
   camera_web:
     dependency: transitive
     description:
       name: camera_web
-      sha256: "6db5052de8c5074edc8cf75bc9a63a56dd0ae18646152b9d2273a9a4f6301b17"
+      sha256: "496de93c5d462738ce991dbfe91fb19026f115ed36406700a20a380fb0018299"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.1"
+    version: "0.3.1+1"
   characters:
     dependency: transitive
     description:
@@ -180,10 +180,10 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "5e59c3d9cbee0a4c6f4f033c27f0778e96712da6f75ff25b84b7afb1ee92538d"
+      sha256: "3f0cd7ca37d54521ad0f527f3c939c951ee2de9b4680c36388e46a99a56beda0"
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.8"
+    version: "4.0.10"
   js:
     dependency: transitive
     description:

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:camera/camera.dart';
@@ -19,6 +21,7 @@ class VehiclePlateScannerController extends ChangeNotifier
   CameraDescription? _currentCamera;
   bool _initialized = false;
   bool _processing = false;
+  Timer? _timer;
 
   // Uint8List? memoryImage;
   // List<BrazilianVehiclePlate> lastPlates = [];
@@ -78,19 +81,90 @@ class VehiclePlateScannerController extends ChangeNotifier
       final controller = _cameraController;
       _cameraController = null;
 
-      await controller?.stopImageStream();
+      // await controller?.stopImageStream();
       await controller?.dispose();
     }
+    if (_timer != null) {
+      _timer!.cancel();
+      _timer = null;
+    }
 
-    _cameraController = CameraController(camera, _defaultResolutionPreset,
-        enableAudio: false, imageFormatGroup: ImageFormatGroup.yuv420);
+    _processing = false;
+
+    _cameraController = CameraController(
+      camera,
+      _defaultResolutionPreset,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.yuv420,
+    );
 
     await _cameraController!.initialize();
-    await _cameraController!.startImageStream(_onImage);
+    // await _cameraController!.startImageStream(_onImage);
+
+    await _cameraController!.setFlashMode(FlashMode.off);
+
+    _timer = Timer.periodic(
+      const Duration(milliseconds: 1),
+      (timer) {
+        _captureAndProcessImage();
+      },
+    );
 
     _initialized = true;
     _currentCamera = camera;
     notifyListeners();
+  }
+
+  Future<void> _captureAndProcessImage() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _processing == true) {
+      return;
+    }
+
+    _processing = true;
+
+    late final XFile? fileImage;
+
+    try {
+      final stopwatch = Stopwatch()..start();
+      fileImage = await _cameraController!.takePicture();
+      stopwatch.stop();
+
+      print(
+          'Image taken ${stopwatch.elapsedMilliseconds}  -  ${fileImage.path} ${fileImage.length()}');
+    } catch (e, st) {
+      print('Error occurred while taking picture');
+      print(e.toString());
+      print(st.toString());
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      _processing = false;
+      return;
+    }
+
+    try {
+      _currentPlates =
+          await _plateRecognizer.processImageFromFilePath(fileImage.path);
+      notifyListeners();
+
+      onVehiclePlates(_currentPlates);
+    } catch (e, st) {
+      print('Error processing images');
+      print(e.toString());
+      print(st.toString());
+    }
+
+    try {
+      final file = File(fileImage.path);
+      await file.delete();
+    } catch (e, st) {
+      print('Error deleting image');
+      print(e.toString());
+      print(st.toString());
+    }
+
+    _processing = false;
   }
 
   void _onImage(CameraImage image) async {
@@ -127,7 +201,9 @@ class VehiclePlateScannerController extends ChangeNotifier
 
   @override
   Future<void> dispose() async {
-    await _cameraController?.stopImageStream();
+    _initialized = false;
+    _timer?.cancel();
+    // await _cameraController?.stopImageStream();
     await _cameraController?.dispose();
 
     await _plateRecognizer.dispose();

@@ -28,6 +28,7 @@ class VehiclePlateRecognizer {
     _isolate = await Isolate.spawn(
       _VehiclePlateRecognizerBackground._run,
       _receivePort.sendPort,
+      onError: _receivePort.sendPort,
     );
 
     await _runningReceivePort.future;
@@ -53,6 +54,23 @@ class VehiclePlateRecognizer {
     return hasSomeValue ? _streamIterator.current : [];
   }
 
+  Future<List<BrazilianVehiclePlate>> processImageFromFilePath(
+    String filePath,
+  ) async {
+    if (!_runningReceivePort.isCompleted) {
+      throw Exception(
+          'PlateRecognizer not initialized correctly.\nCall init() first.');
+    }
+
+    final port = await _runningReceivePort.future;
+
+    port.send(filePath);
+
+    final hasSomeValue = await _streamIterator.moveNext();
+
+    return hasSomeValue ? _streamIterator.current : [];
+  }
+
   void _handleData(dynamic data) {
     if (data is List<BrazilianVehiclePlate>) {
       _controller.add(data);
@@ -61,6 +79,8 @@ class VehiclePlateRecognizer {
       data.send(rootIsolateToken);
       // data.send(firstPlateRect);
       _runningReceivePort.complete(data);
+    } else if (data is List<String?> && data.length == 2) {
+      final error = RemoteError(data[0] as String, data[1] as String);
     }
   }
 
@@ -88,8 +108,6 @@ class _VehiclePlateRecognizerBackground {
   static final _plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
 
-  static final _newPlateRegex = RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})');
-
   final SendPort _sendPort;
 
   late final textRecognizer =
@@ -113,6 +131,15 @@ class _VehiclePlateRecognizerBackground {
   Future<void> _handleCommand(dynamic data) async {
     if (data is RootIsolateToken) {
       BackgroundIsolateBinaryMessenger.ensureInitialized(data);
+    } else if (data is String) {
+      final inputImage = InputImage.fromFilePath(data);
+
+      final plates = await _processPlatesFromInputImage(
+        inputImage,
+        textRecognizer,
+      );
+
+      _sendPort.send(plates);
     } else if (data is CameraImageInfo) {
       final inputImage = await data.toInputImage();
 
@@ -185,11 +212,14 @@ class _VehiclePlateRecognizerBackground {
       for (TextBlock block in recognizedText.blocks) {
         String text = block.text.toUpperCase();
 
+        final width = inputImage.inputImageData?.size.width ?? 1;
+        final height = inputImage.inputImageData?.size.height ?? 1;
+
         final boundingBox = Rect.fromLTRB(
-          block.boundingBox.left / inputImage.inputImageData!.size.width,
-          block.boundingBox.top / inputImage.inputImageData!.size.height,
-          block.boundingBox.right / inputImage.inputImageData!.size.width,
-          block.boundingBox.bottom / inputImage.inputImageData!.size.height,
+          block.boundingBox.left / width,
+          block.boundingBox.top / height,
+          block.boundingBox.right / width,
+          block.boundingBox.bottom / height,
         );
 
         if (_plateRegex.hasMatch(text)) {
@@ -228,6 +258,8 @@ class _VehiclePlateRecognizerBackground {
       //     .sort((a, b) => a.errorToPlateRect.compareTo(b.errorToPlateRect));
       brazilianPlates
           .sort((a, b) => a.combinationChanges.compareTo(b.combinationChanges));
+
+      print(brazilianPlates.map((e) => e.plate).toList());
 
       return brazilianPlates;
     } catch (e, st) {

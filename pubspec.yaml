@@ -11,9 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
-  image: ^4.0.8  
+  image: ^4.0.10
 
-  camera: ^0.10.1
+  camera: ^0.10.2+1
 
   google_mlkit_commons: ^0.2.0
   google_mlkit_text_recognition: ^0.5.0
