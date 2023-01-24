@@ -54,13 +54,13 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           VehiclePlateScannerPreview(
             onVehiclePlates: (plates) {
-              if (plates.isNotEmpty) {
-                print(plates
-                    .map((plate) =>
-                        '${plate.plate}: ${plate.combinationChanges}')
-                    .join(',   '));
-                print('');
-              }
+              // if (plates.isNotEmpty) {
+              // print(plates
+              //     .map((plate) =>
+              //         '${plate.plate}: ${plate.combinationChanges}')
+              //     .join(',   '));
+              // print('');
+              // }
             },
             plateRect: cutRect,
           ),

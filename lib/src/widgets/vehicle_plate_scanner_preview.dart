@@ -35,6 +35,8 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
     plateRect: widget.plateRect,
   );
 
+  bool _error = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,9 +45,20 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
   }
 
   void _init() async {
-    await _controller.init();
-    if ((_controller.cameras?.length ?? 0) > 0) {
-      await _controller.changeCamera(_controller.cameras!.first);
+    try {
+      if (_error == false) {
+        await _controller.init();
+      }
+
+      if ((_controller.cameras?.length ?? 0) > 0) {
+        await _controller.changeCamera(_controller.cameras!.first);
+      } else {
+        await _controller.loadCameras();
+      }
+    } catch (e) {
+      setState(() {
+        _error = true;
+      });
     }
   }
 
@@ -84,12 +97,16 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
       valueListenable: _controller,
       builder: (context, controller, child) {
         if (!controller.initialized || controller.cameraController == null) {
-          return const _LoadingScreenWidget();
+          return _LoadingScreenWidget(
+            tryAgain: _error ? _init : null,
+          );
         }
         return CameraPreview(
           controller.cameraController!,
         );
-        // if (controller.memoryImage == null) {}
+        // if (controller.memoryImage == null) {
+        // if (controller.lastPlates.isEmpty) {
+        // }
         // return Column(
         //   children: [
         //     Expanded(
@@ -100,7 +117,7 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
         //     Expanded(
         //       child: Row(
         //         children: [
-        //           Expanded(child: Image.memory(controller.memoryImage!)),
+        //           // Expanded(child: Image.memory(controller.memoryImage!)),
         //           Expanded(
         //             child: Padding(
         //               padding: const EdgeInsets.only(
@@ -226,7 +243,9 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
 }
 
 class _LoadingScreenWidget extends StatelessWidget {
-  const _LoadingScreenWidget();
+  const _LoadingScreenWidget({required this.tryAgain});
+
+  final void Function()? tryAgain;
 
   @override
   Widget build(BuildContext context) {
@@ -237,13 +256,21 @@ class _LoadingScreenWidget extends StatelessWidget {
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          SizedBox(height: 10),
-          CircularProgressIndicator(
+        children: [
+          const SizedBox(height: 10),
+          const CircularProgressIndicator(
             strokeWidth: 1.3,
             color: Colors.white,
           ),
-          SizedBox(height: 20)
+          const SizedBox(height: 20),
+          if (tryAgain != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              child: ElevatedButton(
+                onPressed: tryAgain!,
+                child: const Text('Tentar novamente'),
+              ),
+            )
         ],
       ),
     );

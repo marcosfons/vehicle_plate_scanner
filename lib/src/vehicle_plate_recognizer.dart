@@ -6,19 +6,19 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image/image.dart' as img;
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
+import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plates_result.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
 
 class VehiclePlateRecognizer {
-  final Rect firstPlateRect;
-
   late final Isolate _isolate;
   late final ReceivePort _receivePort;
 
   final _runningReceivePort = Completer<SendPort>();
-  final _controller = StreamController<List<BrazilianVehiclePlate>>();
-  late final _streamIterator = StreamIterator(_controller.stream);
+  final _controller =
+      StreamController<BrazilianVehiclePlatesResult>.broadcast();
 
-  VehiclePlateRecognizer(this.firstPlateRect);
+  Stream<BrazilianVehiclePlatesResult> get outVehiclePlatesStream =>
+      _controller.stream;
 
   Future<void> init() async {
     _receivePort = ReceivePort();
@@ -34,7 +34,7 @@ class VehiclePlateRecognizer {
     await _runningReceivePort.future;
   }
 
-  Future<List<BrazilianVehiclePlate>> processImage(
+  Future<BrazilianVehiclePlatesResult> processImage(
     CameraImageInfo cameraImageInfo,
   ) async {
     if (!_runningReceivePort.isCompleted) {
@@ -46,15 +46,28 @@ class VehiclePlateRecognizer {
 
     port.send(cameraImageInfo);
 
-    // TODO(marcosfons): Add better handling here.
-    // In the future, multiple images could be sended at the same time
-    // Here it should check for an id, or something like that by using `takeWhile`
-    final hasSomeValue = await _streamIterator.moveNext();
+    final id = cameraImageInfo.hashCode;
 
-    return hasSomeValue ? _streamIterator.current : [];
+    // Will wait for 50 events until cancel the listen
+    int counter = 50;
+
+    // TODO(marcosfons): Consider that the events can be not continuous
+    return await _controller.stream.first;
+
+    // await for (final result in _controller.stream) {
+    //   if (result.id == id) {
+    //     return result;
+    //   } else if (counter == 0) {
+    //     break;
+    //   }
+
+    //   counter--;
+    // }
+
+    return BrazilianVehiclePlatesResult(id, const []);
   }
 
-  Future<List<BrazilianVehiclePlate>> processImageFromFilePath(
+  Future<BrazilianVehiclePlatesResult> processImageFromFilePath(
     String filePath,
   ) async {
     if (!_runningReceivePort.isCompleted) {
@@ -66,13 +79,28 @@ class VehiclePlateRecognizer {
 
     port.send(filePath);
 
-    final hasSomeValue = await _streamIterator.moveNext();
+    final id = filePath.hashCode;
 
-    return hasSomeValue ? _streamIterator.current : [];
+    // Will wait for 50 events until cancel the listen
+    int counter = 50;
+
+    return await _controller.stream.first;
+
+    await for (final result in _controller.stream) {
+      if (result.id == id) {
+        return result;
+      } else if (counter == 0) {
+        break;
+      }
+
+      counter--;
+    }
+
+    return BrazilianVehiclePlatesResult(id, const []);
   }
 
   void _handleData(dynamic data) {
-    if (data is List<BrazilianVehiclePlate>) {
+    if (data is BrazilianVehiclePlatesResult) {
       _controller.add(data);
     } else if (data is SendPort) {
       final rootIsolateToken = RootIsolateToken.instance!;
@@ -81,12 +109,8 @@ class VehiclePlateRecognizer {
       _runningReceivePort.complete(data);
     } else if (data is List<String?> && data.length == 2) {
       final error = RemoteError(data[0] as String, data[1] as String);
+      _controller.addError(error, error.stackTrace);
     }
-  }
-
-  void changePlateRect(Rect newRect) async {
-    final port = await _runningReceivePort.future;
-    port.send(newRect);
   }
 
   Future<void> dispose() async {
@@ -102,8 +126,6 @@ class VehiclePlateRecognizer {
 /// allows us to use plugins from background isolates.
 class _VehiclePlateRecognizerBackground {
   _VehiclePlateRecognizerBackground(this._sendPort);
-
-  Rect? plateRect;
 
   static final _plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
@@ -139,7 +161,9 @@ class _VehiclePlateRecognizerBackground {
         textRecognizer,
       );
 
-      _sendPort.send(plates);
+      final result = BrazilianVehiclePlatesResult(data.hashCode, plates);
+
+      _sendPort.send(result);
     } else if (data is CameraImageInfo) {
       final inputImage = await data.toInputImage();
 
@@ -147,6 +171,8 @@ class _VehiclePlateRecognizerBackground {
         inputImage,
         textRecognizer,
       );
+
+      final result = BrazilianVehiclePlatesResult(data.hashCode, plates);
 
       // if (plates.isNotEmpty) {
       //   print('Converting image to PNG');
@@ -171,9 +197,7 @@ class _VehiclePlateRecognizerBackground {
       //   }
       // }
 
-      _sendPort.send(plates);
-    } else if (data is Rect) {
-      plateRect = data;
+      _sendPort.send(result);
     }
   }
 
@@ -254,12 +278,8 @@ class _VehiclePlateRecognizerBackground {
         }
       }
 
-      // brazilianPlates
-      //     .sort((a, b) => a.errorToPlateRect.compareTo(b.errorToPlateRect));
       brazilianPlates
           .sort((a, b) => a.combinationChanges.compareTo(b.combinationChanges));
-
-      print(brazilianPlates.map((e) => e.plate).toList());
 
       return brazilianPlates;
     } catch (e, st) {

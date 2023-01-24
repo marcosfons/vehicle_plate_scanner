@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
+import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plates_result.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
 import 'package:vehicle_plate_scanner/src/vehicle_plate_recognizer.dart';
 
@@ -12,7 +13,7 @@ class VehiclePlateScannerController extends ChangeNotifier
     implements ValueListenable<VehiclePlateScannerController> {
   static List<CameraDescription>? _cameras;
 
-  late final _plateRecognizer = VehiclePlateRecognizer(plateRect);
+  late final _plateRecognizer = VehiclePlateRecognizer();
 
   Rect plateRect;
 
@@ -21,7 +22,8 @@ class VehiclePlateScannerController extends ChangeNotifier
   CameraDescription? _currentCamera;
   bool _initialized = false;
   bool _processing = false;
-  Timer? _timer;
+
+  StreamSubscription<BrazilianVehiclePlatesResult>? _cameraImageSubscription;
 
   // Uint8List? memoryImage;
   // List<BrazilianVehiclePlate> lastPlates = [];
@@ -43,15 +45,14 @@ class VehiclePlateScannerController extends ChangeNotifier
 
   bool get initialized => _initialized;
 
-  void changePlateRect(Rect newRect) {
-    plateRect = newRect;
-    _plateRecognizer.changePlateRect(newRect);
-  }
-
   Future<void> init() async {
     // TODO(marcosfons): Error handling
     await _plateRecognizer.init();
 
+    await loadCameras();
+  }
+
+  Future<void> loadCameras() async {
     try {
       _cameras = await availableCameras();
     } catch (e) {
@@ -81,12 +82,14 @@ class VehiclePlateScannerController extends ChangeNotifier
       final controller = _cameraController;
       _cameraController = null;
 
-      // await controller?.stopImageStream();
+      if (controller?.value.isStreamingImages ?? false) {
+        controller?.stopImageStream();
+      }
+
+      await (_cameraImageSubscription?.cancel() ?? Future.value());
+      _cameraImageSubscription = null;
+
       await controller?.dispose();
-    }
-    if (_timer != null) {
-      _timer!.cancel();
-      _timer = null;
     }
 
     _processing = false;
@@ -99,112 +102,115 @@ class VehiclePlateScannerController extends ChangeNotifier
     );
 
     await _cameraController!.initialize();
-    // await _cameraController!.startImageStream(_onImage);
-
     await _cameraController!.setFlashMode(FlashMode.off);
 
-    _timer = Timer.periodic(
-      const Duration(milliseconds: 1),
-      (timer) {
-        _captureAndProcessImage();
-      },
-    );
+    await _cameraController!.startImageStream(_onCameraImage);
 
     _initialized = true;
     _currentCamera = camera;
     notifyListeners();
   }
 
-  Future<void> _captureAndProcessImage() async {
-    if (_cameraController == null ||
-        !_cameraController!.value.isInitialized ||
-        _processing == true) {
-      return;
+  Stream<BrazilianVehiclePlatesResult> _cameraImagePathStream() async* {
+    while (true) {
+      try {
+        final fileImage = await _cameraController!.takePicture();
+
+        try {
+          final result =
+              await _plateRecognizer.processImageFromFilePath(fileImage.path);
+
+          yield result;
+        } catch (e, st) {
+          print('Error processing image');
+          print(e.toString());
+          print(st.toString());
+        }
+
+        try {
+          final file = File(fileImage.path);
+          await file.delete();
+        } catch (e, st) {
+          print('Error deleting image');
+          print(e.toString());
+          print(st.toString());
+        }
+
+        await Future.delayed(const Duration(milliseconds: 2));
+      } catch (e) {
+        yield const BrazilianVehiclePlatesResult(0, []);
+
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
     }
+  }
 
-    _processing = true;
+  void _onPlatesResult(BrazilianVehiclePlatesResult result) {
+    _currentPlates = result.plates;
+    notifyListeners();
 
-    late final XFile? fileImage;
+    onVehiclePlates(_currentPlates);
 
-    try {
-      final stopwatch = Stopwatch()..start();
-      fileImage = await _cameraController!.takePicture();
-      stopwatch.stop();
+    // if (_currentPlates.isNotEmpty) {
+    //   lastPlates = _currentPlates;
+    // }
 
-      print(
-          'Image taken ${stopwatch.elapsedMilliseconds}  -  ${fileImage.path} ${fileImage.length()}');
-    } catch (e, st) {
-      print('Error occurred while taking picture');
-      print(e.toString());
-      print(st.toString());
-      await Future.delayed(const Duration(milliseconds: 20));
+    // if (_currentPlates.isNotEmpty) {
+    //   memoryImage = convertImageWithVehiclePlate(image, _currentPlates.first);
+    //   lastPlates = List.from(_currentPlates);
+    //   notifyListeners();
+    // }
+  }
 
-      _processing = false;
-      return;
-    }
-
-    try {
-      _currentPlates =
-          await _plateRecognizer.processImageFromFilePath(fileImage.path);
-      notifyListeners();
-
-      onVehiclePlates(_currentPlates);
-    } catch (e, st) {
-      print('Error processing images');
-      print(e.toString());
-      print(st.toString());
-    }
-
-    try {
-      final file = File(fileImage.path);
-      await file.delete();
-    } catch (e, st) {
-      print('Error deleting image');
-      print(e.toString());
-      print(st.toString());
+  void _changeCameraStreamToCameraCaptureStream() async {
+    if (_cameraController?.value.isStreamingImages ?? false) {
+      _cameraController?.stopImageStream();
     }
 
     _processing = false;
+
+    _cameraImageSubscription = _cameraImagePathStream().listen(_onPlatesResult);
   }
 
-  void _onImage(CameraImage image) async {
+  void _onCameraImage(CameraImage image) async {
     if (_processing) {
       return;
     }
 
     _processing = true;
 
+    for (final plane in image.planes) {
+      if (image.width != plane.bytesPerRow) {
+        return _changeCameraStreamToCameraCaptureStream();
+      }
+    }
+
     try {
       final cameraImageInfo = CameraImageInfo(
         image: image,
         cameraSensorOrientation: _currentCamera!.sensorOrientation,
-        // cameraSensorOrientation: _cameraController.value.recordingOrientation,
       );
 
-      _currentPlates = await _plateRecognizer.processImage(cameraImageInfo);
-      notifyListeners();
-
-      // if (_currentPlates.isNotEmpty) {
-      //   memoryImage = convertImageWithVehiclePlate(image, _currentPlates.first);
-      //   lastPlates = List.from(_currentPlates);
-      //   notifyListeners();
-      // }
-
-      onVehiclePlates(_currentPlates);
+      final result = await _plateRecognizer.processImage(cameraImageInfo);
+      _onPlatesResult(result);
     } catch (e, st) {
       print(e.toString());
       print(st.toString());
     }
 
-    _processing = false;
+    Future.delayed(
+      const Duration(milliseconds: 2),
+      () => _processing = false,
+    );
   }
 
   @override
   Future<void> dispose() async {
     _initialized = false;
-    _timer?.cancel();
+    await _cameraImageSubscription?.cancel();
     // await _cameraController?.stopImageStream();
     await _cameraController?.dispose();
+    _cameraController = null;
 
     await _plateRecognizer.dispose();
 
