@@ -52,7 +52,8 @@ class VehiclePlateRecognizer {
     int counter = 50;
 
     // TODO(marcosfons): Consider that the events can be not continuous
-    return await _controller.stream.first;
+    return await _controller.stream.first
+        .catchError((e) => BrazilianVehiclePlatesResult(id, const []));
 
     // await for (final result in _controller.stream) {
     //   if (result.id == id) {
@@ -84,7 +85,8 @@ class VehiclePlateRecognizer {
     // Will wait for 50 events until cancel the listen
     int counter = 50;
 
-    return await _controller.stream.first;
+    return await _controller.stream.first
+        .catchError((e) => BrazilianVehiclePlatesResult(id, const []));
 
     await for (final result in _controller.stream) {
       if (result.id == id) {

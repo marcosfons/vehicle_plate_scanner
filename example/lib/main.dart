@@ -55,11 +55,10 @@ class _MyHomePageState extends State<MyHomePage> {
           VehiclePlateScannerPreview(
             onVehiclePlates: (plates) {
               // if (plates.isNotEmpty) {
-              // print(plates
-              //     .map((plate) =>
-              //         '${plate.plate}: ${plate.combinationChanges}')
-              //     .join(',   '));
-              // print('');
+              print(plates
+                  .map((plate) => '${plate.plate}: ${plate.combinationChanges}')
+                  .join(',   '));
+              print('');
               // }
             },
             plateRect: cutRect,
