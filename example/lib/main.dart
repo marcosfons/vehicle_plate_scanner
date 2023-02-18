@@ -30,6 +30,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool enabled = false;
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -48,21 +50,32 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vehicle plate scanner'),
-        actions: const [],
+        actions: [
+          Switch(
+            value: enabled,
+            onChanged: (value) {
+              setState(() {
+                enabled = value;
+              });
+            },
+          )
+        ],
       ),
       body: Stack(
         children: [
-          VehiclePlateScannerPreview(
-            onVehiclePlates: (plates) {
-              // if (plates.isNotEmpty) {
-              print(plates
-                  .map((plate) => '${plate.plate}: ${plate.combinationChanges}')
-                  .join(',   '));
-              print('');
-              // }
-            },
-            plateRect: cutRect,
-          ),
+          if (enabled)
+            VehiclePlateScannerPreview(
+              onVehiclePlates: (plates) {
+                // if (plates.isNotEmpty) {
+                print(plates
+                    .map((plate) =>
+                        '${plate.plate}: ${plate.combinationChanges}')
+                    .join(',   '));
+                print('');
+                // }
+              },
+              plateRect: cutRect,
+            ),
         ],
       ),
     );

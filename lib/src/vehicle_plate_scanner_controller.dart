@@ -15,6 +15,8 @@ class VehiclePlateScannerController extends ChangeNotifier
 
   late final _plateRecognizer = VehiclePlateRecognizer();
 
+  bool closed = false;
+
   Rect plateRect;
 
   CameraController? _cameraController;
@@ -73,6 +75,27 @@ class VehiclePlateScannerController extends ChangeNotifier
     }
   }
 
+  Future<void> stopAll() async {
+    _initialized = false;
+    _currentCamera = null;
+    notifyListeners();
+
+    if (_cameraController != null) {
+      final controller = _cameraController;
+      _cameraController = null;
+
+      if (controller?.value.isStreamingImages ?? false) {
+        controller?.stopImageStream();
+      }
+
+      await (_cameraImageSubscription?.cancel() ?? Future.value());
+      _cameraImageSubscription = null;
+
+      await controller?.dispose();
+    }
+    notifyListeners();
+  }
+
   Future<void> changeCamera(CameraDescription camera) async {
     _initialized = false;
     _currentCamera = null;
@@ -117,6 +140,7 @@ class VehiclePlateScannerController extends ChangeNotifier
         final fileImage = await _cameraController!.takePicture();
 
         try {
+          if (closed) return;
           final result =
               await _plateRecognizer.processImageFromFilePath(fileImage.path);
 
@@ -189,7 +213,10 @@ class VehiclePlateScannerController extends ChangeNotifier
       final cameraImageInfo = CameraImageInfo(
         image: image,
         cameraSensorOrientation: _currentCamera!.sensorOrientation,
+        uniqueIdentifier: image.hashCode,
       );
+
+      if (closed) return;
 
       final result = await _plateRecognizer.processImage(cameraImageInfo);
       _onPlatesResult(result);
@@ -206,13 +233,20 @@ class VehiclePlateScannerController extends ChangeNotifier
 
   @override
   Future<void> dispose() async {
+    closed = true;
     _initialized = false;
     await _cameraImageSubscription?.cancel();
-    // await _cameraController?.stopImageStream();
+
+    if (_cameraController?.value.isStreamingImages ?? false) {
+      await _cameraController?.stopImageStream();
+    }
     await _cameraController?.dispose();
     _cameraController = null;
 
-    await _plateRecognizer.dispose();
+    Future.delayed(
+      const Duration(seconds: 1),
+      () => _plateRecognizer.dispose(),
+    );
 
     super.dispose();
   }

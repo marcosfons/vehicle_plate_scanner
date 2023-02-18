@@ -17,9 +17,12 @@ class CameraImageInfo {
   /// The sensor orientation of the camera
   final int cameraSensorOrientation;
 
+  final int uniqueIdentifier;
+
   const CameraImageInfo({
     required this.image,
     required this.cameraSensorOrientation,
+    required this.uniqueIdentifier,
   });
 
   /// Transform this image instance to an `InputImage` from the `google_ml_kit` package

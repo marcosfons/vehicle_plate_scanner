@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plates_result.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
+import 'package:vehicle_plate_scanner/src/models/camera_image_path_info.dart';
 
 class VehiclePlateRecognizer {
   late final Isolate _isolate;
@@ -46,50 +47,11 @@ class VehiclePlateRecognizer {
 
     port.send(cameraImageInfo);
 
-    final id = cameraImageInfo.hashCode;
-
     // Will wait for 50 events until cancel the listen
     int counter = 50;
-
-    // TODO(marcosfons): Consider that the events can be not continuous
-    return await _controller.stream.first
-        .catchError((e) => BrazilianVehiclePlatesResult(id, const []));
-
-    // await for (final result in _controller.stream) {
-    //   if (result.id == id) {
-    //     return result;
-    //   } else if (counter == 0) {
-    //     break;
-    //   }
-
-    //   counter--;
-    // }
-
-    return BrazilianVehiclePlatesResult(id, const []);
-  }
-
-  Future<BrazilianVehiclePlatesResult> processImageFromFilePath(
-    String filePath,
-  ) async {
-    if (!_runningReceivePort.isCompleted) {
-      throw Exception(
-          'PlateRecognizer not initialized correctly.\nCall init() first.');
-    }
-
-    final port = await _runningReceivePort.future;
-
-    port.send(filePath);
-
-    final id = filePath.hashCode;
-
-    // Will wait for 50 events until cancel the listen
-    int counter = 50;
-
-    return await _controller.stream.first
-        .catchError((e) => BrazilianVehiclePlatesResult(id, const []));
 
     await for (final result in _controller.stream) {
-      if (result.id == id) {
+      if (result.id == cameraImageInfo.uniqueIdentifier) {
         return result;
       } else if (counter == 0) {
         break;
@@ -98,7 +60,41 @@ class VehiclePlateRecognizer {
       counter--;
     }
 
-    return BrazilianVehiclePlatesResult(id, const []);
+    return BrazilianVehiclePlatesResult(
+      cameraImageInfo.uniqueIdentifier,
+      const [],
+    );
+  }
+
+  Future<BrazilianVehiclePlatesResult> processImageFromFilePath(
+    String imagePath,
+  ) async {
+    if (!_runningReceivePort.isCompleted) {
+      throw Exception(
+          'PlateRecognizer not initialized correctly.\nCall init() first.');
+    }
+
+    final port = await _runningReceivePort.future;
+
+    port.send(CameraImagePathInfo(
+      imagePath: imagePath,
+      uniqueIdentifier: imagePath.hashCode,
+    ));
+
+    // Will wait for 50 events until cancel the listen
+    int counter = 50;
+
+    await for (final result in _controller.stream) {
+      if (result.id == imagePath.hashCode) {
+        return result;
+      } else if (counter == 0) {
+        break;
+      }
+
+      counter--;
+    }
+
+    return BrazilianVehiclePlatesResult(imagePath.hashCode, const []);
   }
 
   void _handleData(dynamic data) {
@@ -129,6 +125,8 @@ class VehiclePlateRecognizer {
 class _VehiclePlateRecognizerBackground {
   _VehiclePlateRecognizerBackground(this._sendPort);
 
+  bool closed = false;
+
   static final _plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
 
@@ -158,23 +156,30 @@ class _VehiclePlateRecognizerBackground {
     } else if (data is String) {
       final inputImage = InputImage.fromFilePath(data);
 
+      if (closed) return;
       final plates = await _processPlatesFromInputImage(
         inputImage,
         textRecognizer,
       );
 
       final result = BrazilianVehiclePlatesResult(data.hashCode, plates);
+
+      if (closed) return;
 
       _sendPort.send(result);
     } else if (data is CameraImageInfo) {
       final inputImage = await data.toInputImage();
+      if (closed) return;
 
       final plates = await _processPlatesFromInputImage(
         inputImage,
         textRecognizer,
       );
 
-      final result = BrazilianVehiclePlatesResult(data.hashCode, plates);
+      final result =
+          BrazilianVehiclePlatesResult(data.uniqueIdentifier, plates);
+
+      if (closed) return;
 
       // if (plates.isNotEmpty) {
       //   print('Converting image to PNG');
@@ -214,7 +219,9 @@ class _VehiclePlateRecognizerBackground {
     TextRecognizer textRecognizer,
   ) async {
     try {
+      if (closed) return [];
       final recognizedText = await textRecognizer.processImage(inputImage);
+      if (closed) return [];
 
       final brazilianPlates = <BrazilianVehiclePlate>[];
 
