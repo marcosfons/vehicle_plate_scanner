@@ -203,9 +203,11 @@ class VehiclePlateScannerController extends ChangeNotifier
 
     _processing = true;
 
-    for (final plane in image.planes) {
-      if (image.width != plane.bytesPerRow) {
-        return _changeCameraStreamToCameraCaptureStream();
+    if (Platform.isAndroid) {
+      for (final plane in image.planes) {
+        if (image.width != plane.bytesPerRow) {
+          return _changeCameraStreamToCameraCaptureStream();
+        }
       }
     }
 
