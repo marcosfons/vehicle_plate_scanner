@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plates_result.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
@@ -121,7 +121,9 @@ class VehiclePlateScannerController extends ChangeNotifier
       camera,
       _defaultResolutionPreset,
       enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.yuv420,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
 
     await _cameraController!.initialize();
@@ -212,9 +214,18 @@ class VehiclePlateScannerController extends ChangeNotifier
     }
 
     try {
+      final orientations = {
+        DeviceOrientation.portraitUp: 0,
+        DeviceOrientation.landscapeLeft: 90,
+        DeviceOrientation.portraitDown: 180,
+        DeviceOrientation.landscapeRight: 270,
+      };
+
       final cameraImageInfo = CameraImageInfo(
         image: image,
         cameraSensorOrientation: _currentCamera!.sensorOrientation,
+        orientation: orientations[_cameraController!.value.deviceOrientation]!,
+        lensDirection: _currentCamera!.lensDirection,
         uniqueIdentifier: image.hashCode,
       );
 

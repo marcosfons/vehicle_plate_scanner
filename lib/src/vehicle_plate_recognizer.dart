@@ -245,8 +245,8 @@ class _VehiclePlateRecognizerBackground {
       for (TextBlock block in recognizedText.blocks) {
         String text = block.text.toUpperCase();
 
-        final width = inputImage.inputImageData?.size.width ?? 1;
-        final height = inputImage.inputImageData?.size.height ?? 1;
+        final width = inputImage.metadata?.size.width ?? 1;
+        final height = inputImage.metadata?.size.height ?? 1;
 
         final boundingBox = Rect.fromLTRB(
           block.boundingBox.left / width,
