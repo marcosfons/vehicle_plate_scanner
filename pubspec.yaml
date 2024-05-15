@@ -1,6 +1,6 @@
 name: vehicle_plate_scanner
 description: A package to scan images for brazilian vehicle plates.
-version: 0.0.2
+version: 0.0.2+2
 homepage: https://github.com/marcosfons/vehicle_plate_scanner
 
 environment:
@@ -11,12 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  image: ^4.1.3
+  image: ^4.1.7
 
-  camera: ^0.10.5+7
+  camera: ^0.11.0
 
-  google_mlkit_commons: ^0.6.1
-  google_mlkit_text_recognition: ^0.11.0
+  google_mlkit_commons: ^0.7.1
+  google_mlkit_text_recognition: ^0.13.0
 
 dev_dependencies:
   flutter_test:
