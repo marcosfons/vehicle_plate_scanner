@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:image/image.dart' as img;
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plates_result.dart';
+import 'package:vehicle_plate_scanner/src/models/camera_image_converter.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_info.dart';
 import 'package:vehicle_plate_scanner/src/models/camera_image_path_info.dart';
 
@@ -130,6 +129,8 @@ class _VehiclePlateRecognizerBackground {
   static final _plateRegex =
       RegExp(r'([A-Z]{3}[0-9][0-9A-Z][0-9]{2})|([A-Z]{3}.[0-9]{4})');
 
+  static final _imageConverter = CameraImageConverter();
+
   final SendPort _sendPort;
 
   late final textRecognizer =
@@ -168,41 +169,20 @@ class _VehiclePlateRecognizerBackground {
 
       _sendPort.send(result);
     } else if (data is CameraImageInfo) {
-      final inputImage = await data.toInputImage();
-      if (closed) return;
-
-      final plates = await _processPlatesFromInputImage(
-        inputImage,
-        textRecognizer,
+      final inputImage = await _imageConverter.inputImageFromCameraImage(
+        data.image,
+        data.cameraDescription,
+        data.deviceOrientation,
       );
+      if (closed || inputImage == null) return;
+
+      final plates =
+          await _processPlatesFromInputImage(inputImage, textRecognizer);
 
       final result =
           BrazilianVehiclePlatesResult(data.uniqueIdentifier, plates);
 
       if (closed) return;
-
-      // if (plates.isNotEmpty) {
-      //   print('Converting image to PNG');
-      //   final stopwatch = Stopwatch();
-      //   try {
-      //     stopwatch.start();
-      //     final myImage =
-      //         convertImageWithVehiclePlate(data.image, plates.first);
-      //     print(
-      //         'ELAPSED: ${stopwatch.elapsedMilliseconds}  -   ${stopwatch.elapsed} ');
-
-      //     print(myImage != null);
-      //     print(myImage?.length);
-      //     print(myImage?.lengthInBytes);
-      //   } catch (e, st) {
-      //     print(
-      //         'ELAPSED: ${stopwatch.elapsedMilliseconds}  -   ${stopwatch.elapsed} ');
-      //     print('Deu algum erro ao sla o q');
-
-      //     print(e.toString());
-      //     print(st.toString());
-      //   }
-      // }
 
       _sendPort.send(result);
     }
@@ -242,11 +222,13 @@ class _VehiclePlateRecognizerBackground {
         'I': ['L', '1'],
       };
 
-      for (TextBlock block in recognizedText.blocks) {
-        String text = block.text.toUpperCase();
+      final width = inputImage.metadata?.size.width ?? 1;
+      final height = inputImage.metadata?.size.height ?? 1;
 
-        final width = inputImage.metadata?.size.width ?? 1;
-        final height = inputImage.metadata?.size.height ?? 1;
+      final foundPlates = <String>{};
+
+      for (TextBlock block in recognizedText.blocks) {
+        final String text = block.text.toUpperCase();
 
         final boundingBox = Rect.fromLTRB(
           block.boundingBox.left / width,
@@ -263,6 +245,7 @@ class _VehiclePlateRecognizerBackground {
                 (plate) => BrazilianVehiclePlate(
                     plate, 0, boundingBox, block.cornerPoints, 0, true),
               ));
+          foundPlates.add(text);
         }
 
         if (text.length == 7 || text.length == 8) {
@@ -270,19 +253,22 @@ class _VehiclePlateRecognizerBackground {
               .where((combination) => _plateRegex.hasMatch(combination.text));
 
           for (final combination in newCombinations) {
-            brazilianPlates.addAll(_plateRegex
-                .allMatches(combination.text)
-                .map((match) => match.group(0).toString())
-                .map(
-                  (plate) => BrazilianVehiclePlate(
-                    plate,
-                    combination.changes,
-                    boundingBox,
-                    block.cornerPoints,
-                    0,
-                    true,
-                  ),
-                ));
+            if (!(foundPlates.contains(combination.text))) {
+              foundPlates.add(text);
+              brazilianPlates.addAll(_plateRegex
+                  .allMatches(combination.text)
+                  .map((match) => match.group(0).toString())
+                  .map(
+                    (plate) => BrazilianVehiclePlate(
+                      plate,
+                      combination.changes,
+                      boundingBox,
+                      block.cornerPoints,
+                      0,
+                      true,
+                    ),
+                  ));
+            }
           }
         }
       }
@@ -346,120 +332,4 @@ class _Combination {
 
   @override
   int get hashCode => text.hashCode ^ changes.hashCode;
-}
-
-Uint8List? convertImageWithVehiclePlate(
-  CameraImage image,
-  BrazilianVehiclePlate vehiclePlate,
-) {
-  try {
-    final stopwatch = Stopwatch()..start();
-    img.Image convertedImage = convertYUV420ToImage(image);
-    stopwatch.stop();
-    print('ELAPSED CONVERTING YUV420: ${stopwatch.elapsedMilliseconds}');
-    stopwatch.reset();
-
-    stopwatch.start();
-    int previousIndex = vehiclePlate.cornerPoints.length - 1;
-    for (int i = 0; i < vehiclePlate.cornerPoints.length; i++) {
-      convertedImage = img.drawLine(
-        convertedImage,
-        x1: convertedImage.width - vehiclePlate.cornerPoints[i].y,
-        x2: convertedImage.width - vehiclePlate.cornerPoints[previousIndex].y,
-        y1: vehiclePlate.cornerPoints[i].x,
-        y2: vehiclePlate.cornerPoints[previousIndex].x,
-        color: img.ColorInt8.rgb(110, 0, 0),
-        thickness: 5,
-      );
-
-      previousIndex = i;
-    }
-
-    stopwatch.stop();
-    print('ELAPSED DRAWING: ${stopwatch.elapsedMilliseconds}');
-    stopwatch.reset();
-
-    if (convertedImage.width > 800) {
-      stopwatch.start();
-      print('LAST WIDTH ${convertedImage.width}');
-      convertedImage = img.copyResize(convertedImage, width: 800);
-      stopwatch.stop();
-      print('ELAPSED RESIZING: ${stopwatch.elapsedMilliseconds}');
-      stopwatch.reset();
-    }
-
-    stopwatch.start();
-    final bytes = img.encodeJpg(convertedImage);
-    stopwatch.stop();
-    print('ELAPSED CONVERTING PNG: ${stopwatch.elapsedMilliseconds}');
-
-    return bytes;
-  } catch (e, st) {
-    print(
-        'An error has occurred while converting cameraimage with vehicle plate');
-    print(e.toString());
-    print(st.toString());
-    return null;
-  }
-}
-
-Uint8List? convertImagetoPng(CameraImage image) {
-  assert(image.format.group == ImageFormatGroup.yuv420);
-  try {
-    final stopwatch = Stopwatch()..start();
-    img.Image convertedImage = convertYUV420ToImage(image);
-    print('ELAPSED CONVERTING: ${stopwatch.elapsedMilliseconds}');
-
-    if (convertedImage.width > 1024) {
-      convertedImage = img.copyResize(convertedImage, width: 1024);
-    }
-
-    final stopwatch2 = Stopwatch()..start();
-    final bytes = img.encodePng(convertedImage);
-    print('ELAPSED CONVERTING2: ${stopwatch2.elapsedMilliseconds}');
-    return bytes;
-  } catch (e) {
-    rethrow;
-  }
-}
-
-const shift = (0xFF << 24);
-img.Image convertYUV420ToImage(CameraImage image) {
-  assert(image.planes[1].bytesPerPixel != null);
-
-  final int width = image.width;
-  final int height = image.height;
-  final int uvRowStride = image.planes[1].bytesPerRow;
-  final int uvPixelStride = image.planes[1].bytesPerPixel!;
-
-  print("uvRowStride: $uvRowStride");
-  print("uvPixelStride: $uvPixelStride");
-
-  // imgLib -> Image package from https://pub.dartlang.org/packages/image
-  final newImage =
-      img.Image(width: height, height: width); // Create Image buffer
-
-  // Fill image buffer with plane[0] from YUV420_888
-  for (int x = 0; x < width; x++) {
-    for (int y = 0; y < height; y++) {
-      final int uvIndex =
-          uvPixelStride * (x / 2).floor() + uvRowStride * (y / 2).floor();
-      final int index = y * width + x;
-
-      final yp = image.planes[0].bytes[index];
-      final up = image.planes[1].bytes[uvIndex];
-      final vp = image.planes[2].bytes[uvIndex];
-      // Calculate pixel color
-      int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
-      int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91)
-          .round()
-          .clamp(0, 255);
-      int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
-      // color: 0x FF  FF  FF  FF
-      //           A   B   G   R
-      newImage.setPixelRgb(height - y - 1, x, r, g, b);
-    }
-  }
-
-  return newImage;
 }

@@ -2,7 +2,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:vehicle_plate_scanner/src/models/brazilian_vehicle_plate.dart';
 import 'package:vehicle_plate_scanner/src/vehicle_plate_scanner_controller.dart';
-import 'package:vehicle_plate_scanner/src/widgets/vehicle_plates_painter.dart';
 
 class VehiclePlateScannerPreview extends StatefulWidget {
   const VehiclePlateScannerPreview({
@@ -72,18 +71,18 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
   //   }
   // }
 
-  // @override
-  // void didChangeAppLifecycleState(AppLifecycleState state) {
-  //   if (!_controller.initialized) {
-  //     return;
-  //   }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_controller.initialized) {
+      return;
+    }
 
-  //   if (state == AppLifecycleState.inactive) {
-  //     _controller.dispose();
-  //   } else if (state == AppLifecycleState.resumed) {
-  //     _init();
-  //   }
-  // }
+    if (state != AppLifecycleState.resumed) {
+      _controller.dispose();
+    } else {
+      _init();
+    }
+  }
 
   @override
   void dispose() {
@@ -103,139 +102,6 @@ class _VehiclePlateScannerPreviewState extends State<VehiclePlateScannerPreview>
         }
         return CameraPreview(
           controller.cameraController!,
-        );
-        // if (controller.memoryImage == null) {
-        // if (controller.lastPlates.isEmpty) {
-        // }
-        // return Column(
-        //   children: [
-        //     Expanded(
-        //       child: CameraPreview(
-        //         controller.cameraController!,
-        //       ),
-        //     ),
-        //     Expanded(
-        //       child: Row(
-        //         children: [
-        //           // Expanded(child: Image.memory(controller.memoryImage!)),
-        //           Expanded(
-        //             child: Padding(
-        //               padding: const EdgeInsets.only(
-        //                 top: 12,
-        //                 left: 6,
-        //                 right: 6,
-        //               ),
-        //               child: ListView.builder(
-        //                 itemCount: controller.lastPlates.length,
-        //                 itemBuilder: (context, index) {
-        //                   final plate = controller.lastPlates[index];
-
-        //                   return Padding(
-        //                     padding: const EdgeInsets.only(bottom: 2),
-        //                     child: Text(
-        //                       '${plate.plate}  Changes: ${plate.combinationChanges}',
-        //                       style: TextStyle(
-        //                         fontSize: plate.plate == 'QOO-4429' ? 23 : 17,
-        //                       ),
-        //                     ),
-        //                   );
-        //                 },
-        //               ),
-        //             ),
-        //           ),
-        //         ],
-        //       ),
-        //     ),
-        //   ],
-        // );
-
-        return Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            CameraPreview(
-              controller.cameraController!,
-              child: CustomPaint(
-                foregroundPainter: VehiclePlatesPainter(
-                  controller.currentPlates,
-                ),
-              ),
-            ),
-            // AspectRatio(
-            //   aspectRatio: controller.cameraController!.value.aspectRatio,
-            //   child: IgnorePointer(
-            //     child: LayoutBuilder(builder: (context, constraints) {
-            //       // final biggest = constraints.biggest;
-            //       // final newRect = Rect.fromLTRB(
-            //       //   widget.plateRect.left / biggest.width,
-            //       //   widget.plateRect.top / biggest.height,
-            //       //   widget.plateRect.right / biggest.width,
-            //       //   widget.plateRect.bottom / biggest.height,
-            //       // );
-
-            //       late Rect newRect;
-            //       if (widget.onSizePlateRect != null) {
-            //         newRect = widget.onSizePlateRect!(constraints.biggest);
-
-            //         if (newRect != _controller.plateRect) {
-            //           _controller.changePlateRect(newRect);
-            //         }
-            //       } else {
-            //         newRect = _controller.plateRect;
-            //       }
-
-            //       return ClipPath(
-            //         clipper: PlateRectCustomClipper(
-            //           plateRect: newRect,
-            //         ),
-            //         child: Container(
-            //           color: Colors.black.withOpacity(0.3),
-            //         ),
-            //       );
-            //     }),
-            //   ),
-            // ),
-            // Padding(
-            //   padding: const EdgeInsets.symmetric(horizontal: 12),
-            //   child: Column(
-            //     mainAxisSize: MainAxisSize.min,
-            //     children: [
-            //       Row(
-            //         children: ResolutionPreset.values
-            //             .map(
-            //               (res) => Expanded(
-            //                 child: TextButton(
-            //                   onPressed: () =>
-            //                       _controller.changeResolutionPreset(res),
-            //                   child: Text(
-            //                     res.name,
-            //                     style: const TextStyle(
-            //                       color: Colors.white,
-            //                       fontSize: 14,
-            //                       fontWeight: FontWeight.bold,
-            //                     ),
-            //                   ),
-            //                 ),
-            //               ),
-            //             )
-            //             .toList(),
-            //       ),
-            //       const SizedBox(height: 12),
-            //       Row(
-            //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            //         children: controller.cameras!
-            //             .map(
-            //               (camera) => IconButton(
-            //                 color: Colors.white,
-            //                 icon: const Icon(Icons.camera),
-            //                 onPressed: () => _controller.changeCamera(camera),
-            //               ),
-            //             )
-            //             .toList(),
-            //       ),
-            //     ],
-            //   ),
-            // ),
-          ],
         );
       },
     );
