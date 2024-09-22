@@ -161,7 +161,7 @@ class VehiclePlateScannerController extends ChangeNotifier
     } catch (e, st) {
       _log.e('Error processing image', error: e, stackTrace: st);
     } finally {
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 10));
       _processing = false;
     }
   }
