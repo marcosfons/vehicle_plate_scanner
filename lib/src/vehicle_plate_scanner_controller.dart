@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -113,6 +114,7 @@ class VehiclePlateScannerController extends ChangeNotifier
       camera,
       _defaultResolutionPreset,
       enableAudio: false,
+      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : null,
       // imageFormatGroup: Platform.isAndroid
       //     ? ImageFormatGroup.nv21
       //     : ImageFormatGroup.bgra8888,
